@@ -1,0 +1,67 @@
+The following options were added to support the 1802/Mini machine, but they
+are not unique at all to that hardware and may be useful on other machines
+and in other circumstances. These options have not been tested for how well
+they interplay with the STG build options, although the 1854 UART one is
+the only one likely to be a problem.
+
+#define FREQ_KHZ       4000    ; Clock frequency for baud rate calculation
+
+Specify the clock frequency of the processor. This is used by the IDE_SETTLE and SET_BAUD options to calculate the delays that they need. If not defined, it defaults to 4000, meaning a 4 Mhz clock.
+
+#define IDE_SETTLE     500
+
+This delays for the specified number of milliseconds before starting a cold boot. When using a BIOS that jumps directly to boot, it may start too quickly after a power-on reset and try to access the compact flash card before it's initialized and online enought to even check the status register to see if it's ready. This delay gives the card a chance to come online before the first access attempt.
+
+#define LAST_RAM       07fffh
+
+This causes the f_freemem BIOS call to simply return the specified address as
+the last RAM address rather than doing a search. This is useful in a machine
+running from an EEPROM that is hardware write-enabled to allow in-circuit
+programming, as otherwise the current memory scan code will either overwrite
+the EEPROM if it is not software write-protected (not recommended anyway), or
+it will crash when it reaches the EEPROM if it is software write-protected.
+
+#define BAUD_FIX               ; Use rounding-off to calculate auto-baud
+
+Changes the auto-baud-rate algorithm in the bit-banged UART to round off its
+measurement rather than truncating it, which makes baud rate detection more
+reliable for cases where clock frequency or baud rate are slightly off from
+one another.
+
+#define SET_BAUD       4800    ; Use this on bit-bang instead of auto-baud
+
+Disables auto-baud rate detection for the bit-banged UART and uses the fixed
+baud rate instead. This eliminates the need to hit enter at startup since the
+rate will be pre-determined. To calculate the baud rate delay factor, the
+clock frequency needs to be specified also if it is not 4 Mhz which is built
+in as a default value.
+
+#define NO_MOVER               ; Leave out f_mover call to save BIOS space
+
+Causes the f_mover routine to be omitted from the BIOS to save space, in
+particular to allow the 1854 UART code to be included in a 2K BIOS image.
+The f_mover API is a specialty routine that could be readily replaced with
+an Elf/OS program if needed.
+
+#define 1854_UART              ; 1854 UART on system
+#define  1854_DATA     6       ;  Data port for 1854
+#define  1854_STATUS   7       ;  Status/command port for 1854
+
+Includes the CDP1854 UART driver in BIOS as the console. Although this was
+written to support the UART card for the 1802/Mini it is generic 1854 code
+and should be usable on other systems with an 1854 UART. At this time, the
+bit-bang code is still built as well even if it is not used... I will look
+into changing this in the future if it is desirable to free up space. The
+four "extended" BIOS UART calls are now supported as well.
+
+#define  1854_DETECT           ;  Use 1854 if no EF serial cable present
+
+This causes the BIOS to use the bit-banged console port using EF/Q lines if
+a cable is plugged into the port, and to use the 1854 otherwise, if one is
+determined to exist (if not, the bit-banged port is used anyway). In order
+for this to work, the serial input EF line needs a pull-up or pull-down
+resistor to pull it to the "space" level when no cable is installed. The
+1802/Mini includes just such a resistor and a jumper to select polarity, and
+this jumper can be used to make the bit-banged port always selected when
+BIOS is built with this option if desired. 
+
